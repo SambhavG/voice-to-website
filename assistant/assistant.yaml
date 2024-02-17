@@ -13,3 +13,8 @@ ollama:
 
 conversation:
   greeting: "Hi, how can I help you?"
+
+autowebsite:
+  userPromptFilePath: "../src/lib/user-prompt.js"
+  userPromptFormatFilePath: "prompt.txt"
+  componentFilePath: "../src/lib/Worktable.svelte"

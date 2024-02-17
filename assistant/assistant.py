@@ -110,6 +110,17 @@ class Assistant:
         ]
         config.whisperRecognition.lang = configYaml["whisperRecognition"]["lang"]
 
+        config.autowebsite = Inst()
+        config.autowebsite.userPromptFilePath = configYaml["autowebsite"][
+            "userPromptFilePath"
+        ]
+        config.autowebsite.userPromptFormatFilePath = configYaml["autowebsite"][
+            "userPromptFormatFilePath"
+        ]
+        config.autowebsite.componentFilePath = configYaml["autowebsite"][
+            "componentFIlePath"
+        ]
+
         return config
 
     def display_rec_start(self):
@@ -204,11 +215,32 @@ class Assistant:
         )
         text = transcript["text"]
 
+        # Write the text to the text prompt file, which is in yaml at autowebsite.user-prompt-file-path
+        with open(self.config.autowebsite.userPromptFilePath, "w") as f:
+            # Delete the previous content
+            f.truncate(0)
+            f.write('const userPrompt = "' + text + '"; export default userPrompt;')
+
         print("\nMe:\n", text.strip())
         return text
 
-    def ask_ollama(self, prompt, responseCallback):
-        full_prompt = prompt if hasattr(self, "contextSent") else (prompt)
+    def ask_ollama(self, prompt):
+
+        # Get previous component from self.config.autowebsite.componentFilePath
+        with open(self.config.autowebsite.componentFilePath, "r") as f:
+            component = f.read()
+
+        # Load prompt template from userPromptFormatFilePath
+        with open(self.config.autowebsite.userPromptFormatFilePath, "r") as f:
+            promptTemplate = f.read()
+
+        # Find the ***COMPONENT*** and replace it with component
+        promptTemplate = promptTemplate.replace("***COMPONENT***", component)
+        promptTemplate = promptTemplate.replace("***REQUEST***", prompt)
+
+        # full_prompt = prompt if hasattr(self, "contextSent") else (prompt)
+        full_prompt = promptTemplate
+
         self.contextSent = True
         jsonParam = {
             "model": self.config.ollama.model,
@@ -231,17 +263,22 @@ class Assistant:
             token = body.get("response", "")
             tokens.append(token)
 
-            # the response streams one token at a time, process only at end of sentences
-            if token == "." or token == ":" or token == "!" or token == "?":
-                current_response = "".join(tokens)
-                responseCallback(current_response)
-                tokens = []
+            # # the response streams one token at a time, process only at end of sentences
+            # if token == "." or token == ":" or token == "!" or token == "?":
+            #     current_response = "".join(tokens)
+            #     # responseCallback(current_response)
+            #     print("\nAI:\n", current_response.strip())
 
-            if "error" in body:
-                responseCallback("Error: " + body["error"])
+            #     tokens = []
+
+            # if "error" in body:
+            #     responseCallback("Error: " + body["error"])
 
             if body.get("done", False) and "context" in body:
-                self.context = body["context"]
+                current_response = "".join(tokens)
+                print("\nAI:\n", current_response.strip())
+
+                # self.context = body["context"]
 
     def text_to_speech(self, text):
         print("\nAI:\n", text.strip())
@@ -294,8 +331,7 @@ def main():
                 speech = assist.waveform_from_mic(push_to_talk_key)
                 transcription = assist.speech_to_text(waveform=speech)
                 # Print the transcription
-                print(transcription)
-                assist.ask_ollama(transcription, assist.text_to_speech)
+                assist.ask_ollama(transcription)
                 time.sleep(1)
                 assist.display_message(assist.config.messages.pressSpace)
 
