@@ -1,0 +1,35 @@
+<script>
+import { ref } from 'svelte';
+
+export function Counter() {
+  const count = ref(0);
+
+  const incrementCount = () => {
+    count.value++;
+  };
+
+  return (
+    <section>
+      <h1>{count.value}</h1>
+      <button onClick={incrementCount}>Increment</button>
+    </section>
+  );
+}
+</script>
+
+<style>
+section {
+  font-size: 2rem;
+}
+
+h1 {
+  font-size: 3rem;
+}
+
+button {
+  background-color: blue;
+  color: white;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+</style>

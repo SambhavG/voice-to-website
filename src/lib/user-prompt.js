@@ -1,1 +1,1 @@
-const userPrompt = " Repeat that."; export default userPrompt;
+const userPrompt = " Make a Svelte component with a counter and a button that updates the counter by one."; export default userPrompt;

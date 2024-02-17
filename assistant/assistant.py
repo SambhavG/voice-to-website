@@ -34,6 +34,76 @@ OLLAMA_REST_HEADERS = {"Content-Type": "application/json"}
 INPUT_CONFIG_PATH = "assistant.yaml"
 
 
+def parseResponse(response):
+    # The response is a block of text
+
+    # Split it into newlines
+    response = response.split("\n")
+
+    # Find the first line with ``` in it and remove everything before it, unless the first nonwhitespace character
+    # after it is a <, in which case remove the backticks from the line and all lines before it
+    firstIndex = -1
+    for i in range(len(response)):
+        if "```" in response[i]:
+            firstIndex = i
+            break
+    if firstIndex != -1:
+        if "<" in response[firstIndex]:
+            response = response[firstIndex:]
+            response[0] = response[0].replace("```", "")
+            response[0] = response[0].strip()
+        else:
+            response = response[firstIndex + 1 :]
+    # Find the last line with ``` in it and remove everything after it
+    lastIndex = -1
+    for i in range(len(response) - 1, -1, -1):
+        if "```" in response[i]:
+            lastIndex = i
+            break
+    if lastIndex != -1:
+        response = response[: lastIndex + 1]
+        # Remove the backticks and everything after them from the last line
+        response[lastIndex] = response[lastIndex].split("```")[0]
+        # If the last line is empty, remove it
+        if response[lastIndex] == "":
+            response = response[:lastIndex]
+
+    # Find the content between the <script> and </script> tags, move it to the top of the file
+    firstScriptIndex = -1
+    lastScriptIndex = -1
+    for i in range(len(response)):
+        if "<script>" in response[i]:
+            firstScriptIndex = i
+            break
+    for i in range(len(response) - 1, -1, -1):
+        if "</script>" in response[i]:
+            lastScriptIndex = i
+            break
+    if firstScriptIndex != -1 and lastScriptIndex != -1:
+        scriptContent = response[firstScriptIndex : lastScriptIndex + 1]
+        response = response[:firstScriptIndex] + response[lastScriptIndex + 1 :]
+        response = scriptContent + response
+
+    # Find the content between the style tags, move it to the bottom of the file
+    firstStyleIndex = -1
+    lastStyleIndex = -1
+    for i in range(len(response)):
+        if "<style>" in response[i]:
+            firstStyleIndex = i
+            break
+    for i in range(len(response) - 1, -1, -1):
+        if "</style>" in response[i]:
+            lastStyleIndex = i
+            break
+    if firstStyleIndex != -1 and lastStyleIndex != -1:
+        styleContent = response[firstStyleIndex : lastStyleIndex + 1]
+        response = response[:firstStyleIndex] + response[lastStyleIndex + 1 :]
+        response = response + styleContent
+
+    response = "\n".join(response)
+    return response
+
+
 class Assistant:
     def __init__(self):
         self.config = self.init_config()
@@ -118,7 +188,10 @@ class Assistant:
             "userPromptFormatFilePath"
         ]
         config.autowebsite.componentFilePath = configYaml["autowebsite"][
-            "componentFIlePath"
+            "componentFilePath"
+        ]
+        config.autowebsite.componentPlaintextFilePath = configYaml["autowebsite"][
+            "componentPlaintextFilePath"
         ]
 
         return config
@@ -263,20 +336,25 @@ class Assistant:
             token = body.get("response", "")
             tokens.append(token)
 
-            # # the response streams one token at a time, process only at end of sentences
-            # if token == "." or token == ":" or token == "!" or token == "?":
-            #     current_response = "".join(tokens)
-            #     # responseCallback(current_response)
-            #     print("\nAI:\n", current_response.strip())
-
-            #     tokens = []
-
             # if "error" in body:
             #     responseCallback("Error: " + body["error"])
 
             if body.get("done", False) and "context" in body:
                 current_response = "".join(tokens)
-                print("\nAI:\n", current_response.strip())
+
+                # Parse the response
+                current_response = parseResponse(current_response)
+
+                print("\nAI:\n", current_response)
+
+                # Write to the component file
+                with open(self.config.autowebsite.componentFilePath, "w") as f:
+                    f.truncate(0)
+                    f.write(current_response)
+                # ... and to the plaintext file
+                with open(self.config.autowebsite.componentPlaintextFilePath, "w") as f:
+                    f.truncate(0)
+                    f.write(current_response)
 
                 # self.context = body["context"]
 
