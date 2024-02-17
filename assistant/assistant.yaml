@@ -9,7 +9,7 @@ whisperRecognition:
 
 ollama:
   url: "http://localhost:11434/api/generate"
-  model: "codellama"
+  model: "mistral"
 
 conversation:
   greeting: "Hi, how can I help you?"
@@ -19,3 +19,4 @@ autowebsite:
   userPromptFormatFilePath: "prompt.txt"
   componentFilePath: "../src/lib/Worktable.svelte"
   componentPlaintextFilePath: "../src/lib/Worktable.txt"
+  forceRefreshCodeDisplay: "../src/lib/CodeDisplay.svelte"

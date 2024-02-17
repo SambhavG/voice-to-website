@@ -1,1 +1,1 @@
-const userPrompt = " Make a Svelte component with a counter and a button that updates the counter by one."; export default userPrompt;
+const userPrompt = " Change the button to be in the style of an Apple iOS button."; export default userPrompt;

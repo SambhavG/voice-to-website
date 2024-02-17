@@ -101,6 +101,11 @@ def parseResponse(response):
         response = response + styleContent
 
     response = "\n".join(response)
+
+    # Replace any <template> or </template> tags with <div> and </div>
+    response = response.replace("<template>", "<div>")
+    response = response.replace("</template>", "</div>")
+
     return response
 
 
@@ -192,6 +197,9 @@ class Assistant:
         ]
         config.autowebsite.componentPlaintextFilePath = configYaml["autowebsite"][
             "componentPlaintextFilePath"
+        ]
+        config.autowebsite.forceRefreshCodeDisplay = configYaml["autowebsite"][
+            "forceRefreshCodeDisplay"
         ]
 
         return config
@@ -297,6 +305,36 @@ class Assistant:
         print("\nMe:\n", text.strip())
         return text
 
+    def ask_ollama2(self, full_prompt):
+        jsonParam = {
+            "model": self.config.ollama.model,
+            "stream": True,
+            "context": self.context,
+            "prompt": full_prompt,
+        }
+        response = requests.post(
+            self.config.ollama.url,
+            json=jsonParam,
+            headers=OLLAMA_REST_HEADERS,
+            stream=True,
+            timeout=10,
+        )  # Set the timeout value as per your requirement
+        response.raise_for_status()
+
+        tokens = []
+        for line in response.iter_lines():
+            body = json.loads(line)
+            token = body.get("response", "")
+            tokens.append(token)
+
+            # if "error" in body:
+            #     responseCallback("Error: " + body["error"])
+
+            if body.get("done", False) and "context" in body:
+                current_response = "".join(tokens)
+
+        return current_response
+
     def ask_ollama(self, prompt):
 
         # Get previous component from self.config.autowebsite.componentFilePath
@@ -355,6 +393,17 @@ class Assistant:
                 with open(self.config.autowebsite.componentPlaintextFilePath, "w") as f:
                     f.truncate(0)
                     f.write(current_response)
+                # ... and force refresh
+                with open(self.config.autowebsite.forceRefreshCodeDisplay, "r+") as f:
+                    # The second line says "x = [some number];" - change the number to a random int to force a refresh
+                    # First read the entire file
+                    file = f.readlines()
+                    # Then change the second line
+                    file[1] = "  let x = " + str(int(np.random.rand() * 1000)) + ";\n"
+                    # Then write the entire file back
+                    f.truncate(0)
+                    f.seek(0)
+                    f.writelines(file)
 
                 # self.context = body["context"]
 

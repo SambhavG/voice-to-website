@@ -1,35 +1,27 @@
-<script>
-import { ref } from 'svelte';
+ <script>
+ let countUp = 0;
+ const step = 10; // stepped factor
+ const increment = () => {
+ countUp += step;
+ this.increment(); // pass the event to the new count up function
+ };
+ const decrement = () => {
+ if (countUp <= 0) countUp = 0; // reset to zero when count goes below zero
+ };
 
-export function Counter() {
-  const count = ref(0);
+ <button on:click={decrement} class="apple-button">{Math.floor(countUp / step)}</button>
+ <div on:click={increment}>{Math.floor(countUp / step) > 0 ? "Click me x10!" : "Reset"}</div>
 
-  const incrementCount = () => {
-    count.value++;
-  };
-
-  return (
-    <section>
-      <h1>{count.value}</h1>
-      <button onClick={incrementCount}>Increment</button>
-    </section>
-  );
+ <style>
+ button.apple-button {
+ background-color: #2F76DC;
+ border-radius: 3px;
+ color: white;
+ font-family: Helvetica, Arial, sans-serif;
+ font-size: 18px;
+ padding: 10px;
+ margin: 10px;
+ border: none;
+ cursor: pointer;
 }
-</script>
-
-<style>
-section {
-  font-size: 2rem;
-}
-
-h1 {
-  font-size: 3rem;
-}
-
-button {
-  background-color: blue;
-  color: white;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-}
-</style>
+ </style>
