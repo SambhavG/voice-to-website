@@ -16,7 +16,8 @@ conversation:
 
 autowebsite:
   userPromptFilePath: "../src/lib/user-prompt.js"
-  userPromptFormatFilePath: "prompt.txt"
   componentFilePath: "../src/lib/Worktable.svelte"
   componentPlaintextFilePath: "../src/lib/Worktable.txt"
   forceRefreshCodeDisplay: "../src/lib/CodeDisplay.svelte"
+  userPromptFormatFilePath: "prompt.txt"
+  syntaxCorrectionPrompt: "syntaxCorrectionPrompt.txt"

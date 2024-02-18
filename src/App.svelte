@@ -20,7 +20,7 @@
 <main>
   <div class="header">
     <div class="user-prompt">
-      {userPrompt}
+      Prompt: {userPrompt}
     </div>
   </div>
   <div class="contentPanels">
@@ -48,9 +48,10 @@
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    height: 100vh;
+    height: 100%;
     width: 100%;
   }
+
   .header {
     display: flex;
     justify-content: center;
@@ -59,13 +60,24 @@
     height: 10vh;
   }
 
+  .user-prompt {
+    font:
+      1.5rem "Source Sans Pro",
+      monospace;
+  }
+
   .contentPanels {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 7fr 3fr;
     width: 100%;
     height: 90vh;
     /* margin between columns: */
     gap: 1rem;
+    /* columns should be each 50% of the width of the parent container */
+  }
+
+  .contentPanels > * {
+    width: 100%;
   }
 
   .panel {

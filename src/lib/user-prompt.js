@@ -1,1 +1,1 @@
-const userPrompt = " Change the button to be in the style of an Apple iOS button."; export default userPrompt;
+const userPrompt = " Update the style to put the button and the counter next to each other."; export default userPrompt;

@@ -1,28 +1,44 @@
-<script>
-  let countUp = 0;
-  const step = 10; // stepped factor
-  const increment = () => {
-    countUp += step;
-    this.increment(); // pass the event to the new count up function
-  };
-  const decrement = () => {
-    if (countUp <= 0) countUp = 0; // reset to zero when count goes below zero
-  };
+ <script>
+ let count = 0;
+
+ function increment() {
+ count++;
+ }
 </script>
 
-<button on:click={decrement} class="apple-button">{Math.floor(countUp / step)}</button>
-<div on:click={increment}>{Math.floor(countUp / step) > 0 ? "Click me x10!" : "Reset"}</div>
-
 <style>
-  button.apple-button {
-    background-color: #2f76dc;
-    border-radius: 3px;
-    color: white;
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 18px;
-    padding: 10px;
-    margin: 10px;
-    border: none;
-    cursor: pointer;
-  }
+ .component {
+ display: flex;
+}
+
+ .component > * {
+ margin: 0 0.5em;
+}
+
+ .button-section button {
+ font-size: 1em;
+ padding: 0.5em;
+}
+
+ .counter-section p {
+ font-size: 1.5em;
+ margin: 0;
+}
 </style>
+
+<script>
+ export let {}; // remove this line if there are no props
+
+ const increment = () => {
+ count++;
+ };
+</script>
+
+<div class="component">
+ <section class="button-section">
+ <button on:click={increment}>Increment</button>
+ </section>
+ <section class="counter-section">
+ <p>{count}</p>
+ </section>
+</div>

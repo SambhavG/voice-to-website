@@ -34,12 +34,20 @@ OLLAMA_REST_HEADERS = {"Content-Type": "application/json"}
 INPUT_CONFIG_PATH = "assistant.yaml"
 
 
-def parseResponse(response):
-    # The response is a block of text
+def removeAfterClosingStyle(response):
+    # Find the first line with </style> in it and remove everything after it
+    firstIndex = -1
+    for i in range(len(response)):
+        if "</style>" in response[i]:
+            firstIndex = i
+            break
+    if firstIndex != -1:
+        response = response[: firstIndex + 1]
+    return response
 
-    # Split it into newlines
+
+def removeBackticks(response):
     response = response.split("\n")
-
     # Find the first line with ``` in it and remove everything before it, unless the first nonwhitespace character
     # after it is a <, in which case remove the backticks from the line and all lines before it
     firstIndex = -1
@@ -67,6 +75,14 @@ def parseResponse(response):
         # If the last line is empty, remove it
         if response[lastIndex] == "":
             response = response[:lastIndex]
+    return "\n".join(response)
+
+
+def parseResponse(response):
+    # The response is a block of text
+    response = removeBackticks(response)
+    # Split it into newlines
+    response = response.split("\n")
 
     # Find the content between the <script> and </script> tags, move it to the top of the file
     firstScriptIndex = -1
@@ -201,6 +217,9 @@ class Assistant:
         config.autowebsite.forceRefreshCodeDisplay = configYaml["autowebsite"][
             "forceRefreshCodeDisplay"
         ]
+        config.autowebsite.syntaxCorrectionPrompt = configYaml["autowebsite"][
+            "syntaxCorrectionPrompt"
+        ]
 
         return config
 
@@ -305,7 +324,7 @@ class Assistant:
         print("\nMe:\n", text.strip())
         return text
 
-    def ask_ollama2(self, full_prompt):
+    def ask_ollama(self, full_prompt):
         jsonParam = {
             "model": self.config.ollama.model,
             "stream": True,
@@ -335,7 +354,7 @@ class Assistant:
 
         return current_response
 
-    def ask_ollama(self, prompt):
+    def make_component(self, prompt):
 
         # Get previous component from self.config.autowebsite.componentFilePath
         with open(self.config.autowebsite.componentFilePath, "r") as f:
@@ -353,59 +372,51 @@ class Assistant:
         full_prompt = promptTemplate
 
         self.contextSent = True
-        jsonParam = {
-            "model": self.config.ollama.model,
-            "stream": True,
-            "context": self.context,
-            "prompt": full_prompt,
-        }
-        response = requests.post(
-            self.config.ollama.url,
-            json=jsonParam,
-            headers=OLLAMA_REST_HEADERS,
-            stream=True,
-            timeout=10,
-        )  # Set the timeout value as per your requirement
-        response.raise_for_status()
 
-        tokens = []
-        for line in response.iter_lines():
-            body = json.loads(line)
-            token = body.get("response", "")
-            tokens.append(token)
+        current_response = self.ask_ollama(full_prompt)
 
-            # if "error" in body:
-            #     responseCallback("Error: " + body["error"])
+        # Parse the response
+        current_response = parseResponse(current_response)
 
-            if body.get("done", False) and "context" in body:
-                current_response = "".join(tokens)
+        current_response = self.clean_component(current_response)
 
-                # Parse the response
-                current_response = parseResponse(current_response)
+        current_response = removeAfterClosingStyle(current_response)
 
-                print("\nAI:\n", current_response)
+        print("\nAI:\n", current_response)
 
-                # Write to the component file
-                with open(self.config.autowebsite.componentFilePath, "w") as f:
-                    f.truncate(0)
-                    f.write(current_response)
-                # ... and to the plaintext file
-                with open(self.config.autowebsite.componentPlaintextFilePath, "w") as f:
-                    f.truncate(0)
-                    f.write(current_response)
-                # ... and force refresh
-                with open(self.config.autowebsite.forceRefreshCodeDisplay, "r+") as f:
-                    # The second line says "x = [some number];" - change the number to a random int to force a refresh
-                    # First read the entire file
-                    file = f.readlines()
-                    # Then change the second line
-                    file[1] = "  let x = " + str(int(np.random.rand() * 1000)) + ";\n"
-                    # Then write the entire file back
-                    f.truncate(0)
-                    f.seek(0)
-                    f.writelines(file)
+        # Write to the component file
+        with open(self.config.autowebsite.componentFilePath, "w") as f:
+            f.truncate(0)
+            f.write(current_response)
+        # ... and to the plaintext file
+        with open(self.config.autowebsite.componentPlaintextFilePath, "w") as f:
+            f.truncate(0)
+            f.write(current_response)
+        # ... and force refresh
+        with open(self.config.autowebsite.forceRefreshCodeDisplay, "r+") as f:
+            # The second line says "x = [some number];" - change the number to a random int to force a refresh
+            # First read the entire file
+            file = f.readlines()
+            # Then change the second line
+            file[1] = "  let x = " + str(int(np.random.rand() * 1000)) + ";\n"
+            # Then write the entire file back
+            f.truncate(0)
+            f.seek(0)
+            f.writelines(file)
 
-                # self.context = body["context"]
+        # self.context = body["context"]
+
+    def clean_component(self, component):
+        with open(self.config.autowebsite.syntaxCorrectionPrompt, "r") as f:
+            promptTemplate = f.read()
+
+        full_prompt = promptTemplate.replace("***COMPONENT***", component)
+        current_response = self.ask_ollama(full_prompt)
+
+        # Remove backticks
+        current_response = removeBackticks(current_response)
+
+        return current_response
 
     def text_to_speech(self, text):
         print("\nAI:\n", text.strip())
@@ -458,7 +469,7 @@ def main():
                 speech = assist.waveform_from_mic(push_to_talk_key)
                 transcription = assist.speech_to_text(waveform=speech)
                 # Print the transcription
-                assist.ask_ollama(transcription)
+                assist.make_component(transcription)
                 time.sleep(1)
                 assist.display_message(assist.config.messages.pressSpace)
 

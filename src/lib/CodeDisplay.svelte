@@ -1,5 +1,5 @@
 <script>
-  let x = 979;
+  let x = 36;
   import { HighlightAuto } from "svelte-highlight";
   import githubDark from "svelte-highlight/styles/github-dark";
 
