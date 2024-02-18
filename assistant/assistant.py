@@ -397,8 +397,11 @@ class Assistant:
             # The second line says "x = [some number];" - change the number to a random int to force a refresh
             # First read the entire file
             file = f.readlines()
-            # Then change the second line
-            file[1] = "  let x = " + str(int(np.random.rand() * 1000)) + ";\n"
+            # Find the line with the format "let x = [some number];" and change the number to a random int
+            for i in range(len(file)):
+                if "let x = " in file[i]:
+                    file[i] = "let x = " + str(int(time.time())) + ";\n"
+                    break
             # Then write the entire file back
             f.truncate(0)
             f.seek(0)

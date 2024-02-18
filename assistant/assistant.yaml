@@ -15,9 +15,9 @@ conversation:
   greeting: "Hi, how can I help you?"
 
 autowebsite:
-  userPromptFilePath: "../src/lib/user-prompt.js"
-  componentFilePath: "../src/lib/Worktable.svelte"
-  componentPlaintextFilePath: "../src/lib/Worktable.txt"
-  forceRefreshCodeDisplay: "../src/lib/CodeDisplay.svelte"
+  userPromptFilePath: "../autowebsite/src/app/lib/user-prompt.js"
+  componentFilePath: "../autowebsite/src/app/lib/Worktable.jsx"
+  componentPlaintextFilePath: "../autowebsite/public/Worktable.txt"
+  forceRefreshCodeDisplay: "../autowebsite/src/app/lib/CodeDisplay.jsx"
   userPromptFormatFilePath: "prompt.txt"
   syntaxCorrectionPrompt: "syntaxCorrectionPrompt.txt"

@@ -1,0 +1,1 @@
+const userPrompt = " Update the style to put the button and the counter next to each other."; export default userPrompt;
