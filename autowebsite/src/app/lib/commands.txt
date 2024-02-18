@@ -1,0 +1,4 @@
+Special commands:
+
+delete everything: deletes everything and replaces with a default component
+revert: reverts to the last saved version

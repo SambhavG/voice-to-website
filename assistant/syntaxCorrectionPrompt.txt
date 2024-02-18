@@ -1,11 +1,7 @@
 ***COMPONENT***
 
-This is a Svelte component with potentially incorrect syntax and poor coding style. Correct it so that it follows the following rules:
-1. All opening tags must be closed, especially script and style tags.
-2. There are no errors created by the code.
-3. There are no props exported without default values. Ideally, there should be no props at all
-4. The component should be in the classic Svelte 4 style of a script block, an html block, and a style block. It is ok if it is missing one of these blocks. If it is not in this order, however, reorder it.
-5. The code should be in modern, Svelte 4 syntax. There should be no HTML or HTML-like content in the script part of the component, only state variables and functions.
-6. There should be no typescript. If there is typescript, remove it.
+This is a React component with an error somewhere. The user says there is the following error:
 
-Change the code as little as possible so that it follows these rules. The code should be clean, orderly, polished, and performant. It should be the same in style to code that a professional would write. Do not use markdown; if you use markdown, ensure there is no code on the same line as the backticks. Do not output anything other than the cleaned code. Respond with just code. Do not respond with a description of what was done.
+***REQUEST***
+
+Fix the error in the code. Ensure that the resulting code has no errors. Respond with just code. Do not respond with a description of what was done. The output should be only code. If you follow all the rules, the output should be only code.

@@ -33,20 +33,22 @@ INPUT_CHUNK = 1024
 OLLAMA_REST_HEADERS = {"Content-Type": "application/json"}
 INPUT_CONFIG_PATH = "assistant.yaml"
 
+deleteEverythingComponent = """import React from 'react';
 
-def removeAfterClosingStyle(response):
-    # Find the first line with </style> in it and remove everything after it
-    firstIndex = -1
-    for i in range(len(response)):
-        if "</style>" in response[i]:
-            firstIndex = i
-            break
-    if firstIndex != -1:
-        response = response[: firstIndex + 1]
-    return response
+const Component = () => {
+  return (
+    <div>
+      Hello World!
+    </div>
+  );
+}
+
+export default Component;"""
 
 
 def removeBackticks(response):
+    # Replace ``` with \n```
+    response = response.replace("```", "\n```")
     response = response.split("\n")
     # Find the first line with ``` in it and remove everything before it, unless the first nonwhitespace character
     # after it is a <, in which case remove the backticks from the line and all lines before it
@@ -56,12 +58,7 @@ def removeBackticks(response):
             firstIndex = i
             break
     if firstIndex != -1:
-        if "<" in response[firstIndex]:
-            response = response[firstIndex:]
-            response[0] = response[0].replace("```", "")
-            response[0] = response[0].strip()
-        else:
-            response = response[firstIndex + 1 :]
+        response = response[firstIndex + 1 :]
     # Find the last line with ``` in it and remove everything after it
     lastIndex = -1
     for i in range(len(response) - 1, -1, -1):
@@ -81,46 +78,69 @@ def removeBackticks(response):
 def parseResponse(response):
     # The response is a block of text
     response = removeBackticks(response)
-    # Split it into newlines
+
+    # Import any react hooks that are used and weren't imported
+    possibleHooks = [
+        "useState",
+        "useEffect",
+        "useContext",
+        "useReducer",
+        "useRef",
+        "useMemo",
+        "useCallback",
+        "useImperativeHandle",
+        "useLayoutEffect",
+        "useDebugValue",
+        "useTransition",
+        "useDeferredValue",
+        "useOpaqueIdentifier",
+        "useMutableSource",
+        "useOpaqueIdentifier",
+        "useDeferredValue",
+        "useTransition",
+        "useMutableSource",
+        "useOpaqueIdentifier",
+    ]
+
+    # First, make a list of all the hooks which appear in the response
+    hooksUsed = []
+    for hook in possibleHooks:
+        if hook in response:
+            hooksUsed.append(hook)
     response = response.split("\n")
 
-    # Find the content between the <script> and </script> tags, move it to the top of the file
-    firstScriptIndex = -1
-    lastScriptIndex = -1
+    # Second, find the line with "from 'react';" and import all the hooks that are used
     for i in range(len(response)):
-        if "<script>" in response[i]:
-            firstScriptIndex = i
+        if "from 'react';" in response[i]:
+            # Found the line. Delete it
+            response[i] = ""
             break
-    for i in range(len(response) - 1, -1, -1):
-        if "</script>" in response[i]:
-            lastScriptIndex = i
-            break
-    if firstScriptIndex != -1 and lastScriptIndex != -1:
-        scriptContent = response[firstScriptIndex : lastScriptIndex + 1]
-        response = response[:firstScriptIndex] + response[lastScriptIndex + 1 :]
-        response = scriptContent + response
-
-    # Find the content between the style tags, move it to the bottom of the file
-    firstStyleIndex = -1
-    lastStyleIndex = -1
-    for i in range(len(response)):
-        if "<style>" in response[i]:
-            firstStyleIndex = i
-            break
-    for i in range(len(response) - 1, -1, -1):
-        if "</style>" in response[i]:
-            lastStyleIndex = i
-            break
-    if firstStyleIndex != -1 and lastStyleIndex != -1:
-        styleContent = response[firstStyleIndex : lastStyleIndex + 1]
-        response = response[:firstStyleIndex] + response[lastStyleIndex + 1 :]
-        response = response + styleContent
-
+    if len(hooksUsed) > 0:
+        newImportLine = "import { " + ", ".join(hooksUsed) + " } from 'react';"
+        response.insert(0, newImportLine)
+    if "import React from 'react';" not in response and "React" in "".join(response):
+        response.insert(0, "import React from 'react';")
     response = "\n".join(response)
 
-    # Replace any <template> or </template> tags with <div> and </div>
-    response = response.replace("<template>", "<div>")
-    response = response.replace("</template>", "</div>")
+    # Determine if the response has a "export default" line
+    if not "export default" in response:
+        # Determine name of component. Find first appearance of "const" and use the word after it
+        responseLines = response.split("\n")
+        for i in range(len(responseLines)):
+            if "const" in responseLines[i]:
+                componentName = responseLines[i].split(" ")[1]
+
+        response = response + "\n\nexport default " + componentName + ";"
+
+    # If the line `import { useState } from "react";` appears twice, remove the second one
+    response = response.split("\n")
+    importCount = 0
+    for i in range(len(response)):
+        if "import { useState } from 'react';" in response[i]:
+            importCount += 1
+            if importCount == 2:
+                response[i] = ""
+    response = "\n".join(response)
 
     return response
 
@@ -338,6 +358,7 @@ class Assistant:
             stream=True,
             timeout=10,
         )  # Set the timeout value as per your requirement
+
         response.raise_for_status()
 
         tokens = []
@@ -345,6 +366,8 @@ class Assistant:
             body = json.loads(line)
             token = body.get("response", "")
             tokens.append(token)
+            # Last 50 characters of the response
+            self.display_message("".join(tokens)[-50:])
 
             # if "error" in body:
             #     responseCallback("Error: " + body["error"])
@@ -360,27 +383,25 @@ class Assistant:
         with open(self.config.autowebsite.componentFilePath, "r") as f:
             component = f.read()
 
-        # Load prompt template from userPromptFormatFilePath
-        with open(self.config.autowebsite.userPromptFormatFilePath, "r") as f:
-            promptTemplate = f.read()
+        # Check if prompt contains the text "fix error" with a case-insensitive search
+        if "fix error" in prompt.lower():
+            fileToOpen = self.config.autowebsite.syntaxCorrectionPrompt
+        else:
+            fileToOpen = self.config.autowebsite.userPromptFormatFilePath
 
-        # Find the ***COMPONENT*** and replace it with component
-        promptTemplate = promptTemplate.replace("***COMPONENT***", component)
-        promptTemplate = promptTemplate.replace("***REQUEST***", prompt)
+        if "delete all" in prompt.lower():
+            current_response = deleteEverythingComponent
+        else:
+            with open(fileToOpen, "r") as f:
+                promptTemplate = f.read()
 
-        # full_prompt = prompt if hasattr(self, "contextSent") else (prompt)
-        full_prompt = promptTemplate
+            promptTemplate = promptTemplate.replace("***COMPONENT***", component)
+            promptTemplate = promptTemplate.replace("***REQUEST***", prompt)
 
-        self.contextSent = True
+            self.contextSent = True
+            current_response = self.ask_ollama(promptTemplate)
 
-        current_response = self.ask_ollama(full_prompt)
-
-        # Parse the response
-        current_response = parseResponse(current_response)
-
-        current_response = self.clean_component(current_response)
-
-        current_response = removeAfterClosingStyle(current_response)
+            current_response = parseResponse(current_response)
 
         print("\nAI:\n", current_response)
 
@@ -409,17 +430,17 @@ class Assistant:
 
         # self.context = body["context"]
 
-    def clean_component(self, component):
-        with open(self.config.autowebsite.syntaxCorrectionPrompt, "r") as f:
-            promptTemplate = f.read()
+    # def fix_component(self, component):
+    #     with open(self.config.autowebsite.syntaxCorrectionPrompt, "r") as f:
+    #         promptTemplate = f.read()
 
-        full_prompt = promptTemplate.replace("***COMPONENT***", component)
-        current_response = self.ask_ollama(full_prompt)
+    #     full_prompt = promptTemplate.replace("***COMPONENT***", component)
+    #     current_response = self.ask_ollama(full_prompt)
 
-        # Remove backticks
-        current_response = removeBackticks(current_response)
+    #     # Remove backticks
+    #     current_response = removeBackticks(current_response)
 
-        return current_response
+    #     return current_response
 
     def text_to_speech(self, text):
         print("\nAI:\n", text.strip())

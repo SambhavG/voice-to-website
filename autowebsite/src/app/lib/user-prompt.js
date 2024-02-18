@@ -1,1 +1,1 @@
-const userPrompt = " Update the style to put the button and the counter next to each other."; export default userPrompt;
+const userPrompt = " Create a tic-tac-toe game. It should be centered in the screen and at the top of the screen. The game should have a grid of 9 cells in a 3x3 pattern. Players should be able to click on the cells in the grid to mark them X or O. The game should keep track of whose turn it is. It should display a winning message when one of the players has won."; export default userPrompt;
